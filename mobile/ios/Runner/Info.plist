@@ -45,5 +45,22 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>GIDClientID</key>
+    <!-- TODO Replace this value: -->
+    <!-- Copied from GoogleService-Info.plist key CLIENT_ID -->
+    <string>127004398121-omjj5hiidh3r0q846t9ir0olqekqg8rp.apps.googleusercontent.com</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+    	<dict>
+    		<key>CFBundleTypeRole</key>
+    		<string>Editor</string>
+    		<key>CFBundleURLSchemes</key>
+    		<array>
+    			<!-- TODO Replace this value: -->
+    			<!-- Copied from GoogleService-Info.plist key REVERSED_CLIENT_ID -->
+    			<string>com.googleusercontent.apps.127004398121-omjj5hiidh3r0q846t9ir0olqekqg8rp</string>
+    		</array>
+    	</dict>
+    </array>
 </dict>
 </plist>

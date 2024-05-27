@@ -173,12 +173,7 @@ const AddNewRecordPage = () => {
 
   return (
     <div className="mt-20">
-      <NavBar />
-      {errorMsg.categories && <p className="text-red-500 text-xs italic">{errorMsg.categories}</p>}
-      {errorMsg.question && <p className="text-red-500 text-xs italic">{errorMsg.question}</p>}
-      {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
-
-      {isSubmitted && (
+     {isSubmitted && (
         <div className="fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg max-w-md">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Record Added Successfully</h2>
@@ -202,6 +197,12 @@ const AddNewRecordPage = () => {
           </div>
         </div>
       )}
+      <NavBar />
+      {errorMsg.categories && <p className="text-red-500 text-xs italic">{errorMsg.categories}</p>}
+      {errorMsg.question && <p className="text-red-500 text-xs italic">{errorMsg.question}</p>}
+      {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
+
+     
         
       <div className='w-full max-h-screen border px-10 py-10'>
         <div className="max-w-4xl pt-20 p-6 bg-white mx-auto rounded-lg">

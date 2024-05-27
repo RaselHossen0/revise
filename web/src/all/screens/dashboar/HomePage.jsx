@@ -11,17 +11,20 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
 import TableSortLabel from '@mui/material/TableSortLabel';
-import { getRevisionDetails,searchRecords } from '../../apis/api.js';
+import { getRevisionDetails,searchRecords ,deleteARecord} from '../../apis/api.js';
 import fetechCategory from '../../apis/allAPis.js';
 
 
 
 import {baseUrl,cateGory,apiUrl} from "../../const.js"
+import { FaEdit, FaTrash } from 'react-icons/fa';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
+
   [`&.${tableCellClasses.head}`]: {
-    backgroundColor: '#511F52',
-    color: theme.palette.common.white,
+   backgroundColor: '#C0C0C0',
+
+    //  color: theme.palette.common.white,
   },
   [`&.${tableCellClasses.body}`]: {
     fontSize: 14,
@@ -130,6 +133,22 @@ useEffect(() => {
 
   fetchTopRecords();
 }, []);
+const handleEdit = (recordId) => {
+  navigate(`/edit-record/${recordId}`);
+};
+const handleDelete = (recordId) => {
+  return async () => {
+    try {
+      const response = await deleteARecord(recordId);
+      console.log('Record deleted:', response);
+      // Fetch records again to update the list
+      setRecords(records.filter((record) => record.id !== recordId));
+    } catch (error) {
+      console.error('Error deleting record:', error);
+    }
+  };
+};
+
 
 // Modify the select element in the render method to call handleSortChange when its value changes
 
@@ -178,8 +197,10 @@ useEffect(() => {
             <span className="mr-2 text-gray-700">Sort by</span>
             <select className="border border-gray-300 rounded-md py-1 px-2" value={sortCriteria} onChange={handleSortChange}>
   <option value="category">Category</option>
-  <option value="title">Title</option>
+  <option value="question">Question</option>
+  <option value="solution">Solution</option>
   <option value="lastRevised">Last Revised</option>
+
 </select>
           </div>
         </div>
@@ -192,8 +213,9 @@ useEffect(() => {
         <StyledTableCell>Solution</StyledTableCell>
         <StyledTableCell>Last Revised</StyledTableCell>
         <StyledTableCell>Logic</StyledTableCell>
-        <StyledTableCell>Created By</StyledTableCell>
-        <StyledTableCell>Days Passed Since Last Visit</StyledTableCell>
+        {/* <StyledTableCell>Created By</StyledTableCell> */}
+        <StyledTableCell >Action</StyledTableCell>
+        {/* <StyledTableCell>Days Passed Since Last Visit</StyledTableCell> */}
       </TableRow>
     </TableHead>
     <TableBody>
@@ -218,8 +240,14 @@ useEffect(() => {
     }
   )}</StyledTableCell>
             <StyledTableCell>{record.logic}</StyledTableCell>
-            <StyledTableCell>{record.createdByUser.email}</StyledTableCell>
-            <StyledTableCell>{record.daysPassedSinceLastVisit}</StyledTableCell>
+            <StyledTableCell>
+              <div className="flex items-center space-x-2">
+              <FaEdit  onClick={handleEdit(record.id)}/>
+              <FaTrash onClick={handleDelete(record.id)}/>
+              </div>
+              </StyledTableCell>
+            {/* <StyledTableCell>{record.createdByUser.email}</StyledTableCell> */}
+            {/* <StyledTableCell>{record.daysPassedSinceLastVisit}</StyledTableCell> */}
           </StyledTableRow>
         ))}
     </TableBody>
