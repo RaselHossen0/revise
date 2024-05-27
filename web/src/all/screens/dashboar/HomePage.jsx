@@ -11,13 +11,16 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
 import TableSortLabel from '@mui/material/TableSortLabel';
+import { getRevisionDetails,searchRecords } from '../../apis/api.js';
 import fetechCategory from '../../apis/allAPis.js';
+
+
 
 import {baseUrl,cateGory,apiUrl} from "../../const.js"
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
-    backgroundColor: theme.palette.primary.main,
+    backgroundColor: '#511F52',
     color: theme.palette.common.white,
   },
   [`&.${tableCellClasses.body}`]: {
@@ -54,9 +57,10 @@ const HomePage = () => {
     // Fetch records from API
     const fetchRecords = async () => {
       try {
-        const response = await fetch('/api/records');
-        const data = await response.json();
-        setRecords(data);
+        const response = await getRevisionDetails();
+        // const data = await response.json();
+        setRecords(response);
+        console.log(response);
       } catch (error) {
         console.error('Error fetching records:', error);
       }
@@ -78,16 +82,66 @@ const HomePage = () => {
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
   };
+// Step 1: Add a new state variable for sorting criteria
+const [sortCriteria, setSortCriteria] = useState('category');
+
+// Step 2: Modify the handleSubmit function to sort the search results based on the sorting criteria
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    let searchModel = {
+      searchstr: searchTerm,
+      userName: localStorage.getItem("mail")
+    }
+    let results = await searchRecords(searchModel);
+    
+    // Sort the results based on the sortCriteria
+    results.sort((a, b) => a[sortCriteria].localeCompare(b[sortCriteria]));
+
+    setSearchResults(results);
+    setSearchTerm('');
+    setCurrentPage(1); // Reset to first page after each search
+
+  } catch (error) {
+    console.log('Error:', error.message);
+  }
+};
+
+// Step 3: Add a function to handle changes in the sorting criteria
+const handleSortChange = (e) => {
+  setSortCriteria(e.target.value);
+};
+
+// Step 4: Modify the fetchTopRecords function to fetch only the top records based on a certain criteria
+useEffect(() => {
+  const fetchTopRecords = async () => {
+    try {
+      const records = await getRevisionDetails(); 
+      
+      // Sort the records and take the top 5
+      records.sort((a, b) => b.daysPassedSinceLastVisit - a.daysPassedSinceLastVisit);
+      setTopRecords(records.slice(0, 5));
+      
+    } catch (error) {
+      console.log('Error:', error.message);
+    }
+  };
+
+  fetchTopRecords();
+}, []);
+
+// Modify the select element in the render method to call handleSortChange when its value changes
 
   const sortedRecords = records.sort((a, b) => {
     let comparison = 0;
-    if (orderBy === 'category') {
-      comparison = a.category.localeCompare(b.category);
-    } else if (orderBy === 'title') {
-      comparison = a.title.localeCompare(b.title);
-    } else if (orderBy === 'lastRevised') {
-      comparison = new Date(b.lastRevised) - new Date(a.lastRevised);
-    }
+    // if (orderBy === 'category') {
+    //    comparison = a.category.localeCompare(b.category);
+    // } else if (orderBy === 'title') {
+    //   comparison = a.title.localeCompare(b.title);
+    // } else if (orderBy === 'lastRevised') {
+    //   comparison = new Date(b.lastRevised) - new Date(a.lastRevised);
+    // }
     return order === 'asc' ? comparison : -comparison;
   });
 
@@ -104,6 +158,7 @@ const HomePage = () => {
             Add
           </button>
         </div>
+        
         <hr className="mb-6" />
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center">
@@ -121,61 +176,55 @@ const HomePage = () => {
           </div>
           <div className="flex items-center">
             <span className="mr-2 text-gray-700">Sort by</span>
-            <select className="border border-gray-300 rounded-md py-1 px-2">
-              <option value="category">Category</option>
-              <option value="title">Title</option>
-              <option value="lastRevised">Last Revised</option>
-            </select>
+            <select className="border border-gray-300 rounded-md py-1 px-2" value={sortCriteria} onChange={handleSortChange}>
+  <option value="category">Category</option>
+  <option value="title">Title</option>
+  <option value="lastRevised">Last Revised</option>
+</select>
           </div>
         </div>
         <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <StyledTableCell>
-                  <TableSortLabel
-                    active={orderBy === 'category'}
-                    direction={orderBy === 'category' ? order : 'asc'}
-                    onClick={() => handleSortRequest('category')}
-                  >
-                    Category
-                  </TableSortLabel>
-                </StyledTableCell>
-                <StyledTableCell>Questions</StyledTableCell>
-                <StyledTableCell>
-                  <TableSortLabel
-                    active={orderBy === 'title'}
-                    direction={orderBy === 'title' ? order : 'asc'}
-                    onClick={() => handleSortRequest('title')}
-                  >
-                    Title
-                  </TableSortLabel>
-                </StyledTableCell>
-                <StyledTableCell>
-                  <TableSortLabel
-                    active={orderBy === 'lastRevised'}
-                    direction={orderBy === 'lastRevised' ? order : 'asc'}
-                    onClick={() => handleSortRequest('lastRevised')}
-                  >
-                    Last Revised
-                  </TableSortLabel>
-                </StyledTableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sortedRecords
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((record) => (
-                  <StyledTableRow key={record.id}>
-                    <StyledTableCell>{record.category}</StyledTableCell>
-                    <StyledTableCell>{record.question}</StyledTableCell>
-                    <StyledTableCell>{record.title}</StyledTableCell>
-                    <StyledTableCell>{record.lastRevised}</StyledTableCell>
-                  </StyledTableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+  <Table>
+    <TableHead>
+      <TableRow>
+        <StyledTableCell>Category</StyledTableCell>
+        <StyledTableCell>Question</StyledTableCell>
+        <StyledTableCell>Solution</StyledTableCell>
+        <StyledTableCell>Last Revised</StyledTableCell>
+        <StyledTableCell>Logic</StyledTableCell>
+        <StyledTableCell>Created By</StyledTableCell>
+        <StyledTableCell>Days Passed Since Last Visit</StyledTableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {sortedRecords
+        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+        .map((record) => (
+          <StyledTableRow key={record.id}>
+            <StyledTableCell>
+              {record.categories.map((cat) => cat.categoryName).join(', ')}
+            </StyledTableCell>
+            <StyledTableCell>{record.question}</StyledTableCell>
+            <StyledTableCell>{record.solution}</StyledTableCell>
+            <StyledTableCell>{new Date(...record.metaData.lastVisited).toLocaleDateString(
+    'en-US',
+    {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }
+  )}</StyledTableCell>
+            <StyledTableCell>{record.logic}</StyledTableCell>
+            <StyledTableCell>{record.createdByUser.email}</StyledTableCell>
+            <StyledTableCell>{record.daysPassedSinceLastVisit}</StyledTableCell>
+          </StyledTableRow>
+        ))}
+    </TableBody>
+  </Table>
+</TableContainer>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
