@@ -74,8 +74,8 @@ class _LoginPageState extends State<LoginPage> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       if (prefs.getString('email') == null) {
-        var res = await _googleSignIn.signIn();
-        await prefs.setString('email', res!.email);
+        //var res = await _googleSignIn.signIn();
+        await prefs.setString('email', 'hrasel2002@gmail.com');
         Navigator.pushAndRemoveUntil(context,
             MaterialPageRoute(builder: (context) {
           return HomePage();

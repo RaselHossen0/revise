@@ -11,23 +11,29 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
 import TableSortLabel from '@mui/material/TableSortLabel';
-import { getRevisionDetails,searchRecords ,deleteARecord} from '../../apis/api.js';
+import { getRevisionDetails, searchRecords, deleteARecord } from '../../apis/api.js';
 import fetechCategory from '../../apis/allAPis.js';
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
+import { baseUrl, cateGory, apiUrl } from "../../const.js";
+import { FaArrowCircleRight, FaEdit, FaLink, FaThLarge, FaTrash  } from 'react-icons/fa';
+import RecordCard from '../components/RecordCard.jsx';
 
 
 
-import {baseUrl,cateGory,apiUrl} from "../../const.js"
-import { FaEdit, FaTrash } from 'react-icons/fa';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
-
   [`&.${tableCellClasses.head}`]: {
-   backgroundColor: '#C0C0C0',
-
-    //  color: theme.palette.common.white,
+    backgroundColor: '#C0C0C0',
   },
   [`&.${tableCellClasses.body}`]: {
     fontSize: 14,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: 0,
+    width: '100px',
+    
+   
   },
 }));
 
@@ -45,24 +51,38 @@ const HomePage = () => {
   const [orderBy, setOrderBy] = useState('category');
   const email = localStorage.getItem('email');
   const [category, setCategory] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toDeleteID, setToDeleteID] = useState(null);
+
+  const navigate = useNavigate();
 
   const handleAdd = () => {
     navigate('/add-record');
   };
-  
+
   useEffect(() => {
     fetechCategory();
   }, []);
 
-  const navigate = useNavigate();
-
   useEffect(() => {
-    // Fetch records from API
     const fetchRecords = async () => {
       try {
         const response = await getRevisionDetails();
-        // const data = await response.json();
         setRecords(response);
+  
+        const topCategoryCounts = response.reduce((acc, record) => {
+          record.categories.forEach((category) => {
+            acc[category.categoryName] = acc[category.categoryName] + 1 || 1;
+          });
+          return acc;
+        }, {});
+  
+        const topCategories = Object.entries(topCategoryCounts)
+          .sort(([, aCount], [, bCount]) => bCount - aCount)
+          .slice(0, 5)
+          .map(([categoryName, count]) => ({ categoryName, count }));
+  
+        setTopRecords(topCategories);
         console.log(response);
       } catch (error) {
         console.error('Error fetching records:', error);
@@ -85,93 +105,90 @@ const HomePage = () => {
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
   };
-// Step 1: Add a new state variable for sorting criteria
-const [sortCriteria, setSortCriteria] = useState('category');
-
-// Step 2: Modify the handleSubmit function to sort the search results based on the sorting criteria
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  try {
-    let searchModel = {
-      searchstr: searchTerm,
-      userName: localStorage.getItem("mail")
+  
+  const sortedRecords = records.sort((a, b) => {
+    let comparison = 0;
+    if (a[orderBy] < b[orderBy]) {
+      comparison = -1;
+    } else if (a[orderBy] > b[orderBy]) {
+      comparison = 1;
     }
-    let results = await searchRecords(searchModel);
-    
-    // Sort the results based on the sortCriteria
-    results.sort((a, b) => a[sortCriteria].localeCompare(b[sortCriteria]));
+    return order === 'asc' ? comparison : -comparison;
+  });
 
-    setSearchResults(results);
-    setSearchTerm('');
-    setCurrentPage(1); // Reset to first page after each search
+  const [sortCriteria, setSortCriteria] = useState('category');
 
-  } catch (error) {
-    console.log('Error:', error.message);
-  }
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-// Step 3: Add a function to handle changes in the sorting criteria
-const handleSortChange = (e) => {
-  setSortCriteria(e.target.value);
-};
-
-// Step 4: Modify the fetchTopRecords function to fetch only the top records based on a certain criteria
-useEffect(() => {
-  const fetchTopRecords = async () => {
     try {
-      const records = await getRevisionDetails(); 
+      let searchModel = {
+        searchstr: searchTerm,
+        userName: localStorage.getItem("mail")
+      }
+      let results = await searchRecords(searchModel);
       
-      // Sort the records and take the top 5
-      records.sort((a, b) => b.daysPassedSinceLastVisit - a.daysPassedSinceLastVisit);
-      setTopRecords(records.slice(0, 5));
-      
+      results.sort((a, b) => a[sortCriteria].localeCompare(b[sortCriteria]));
+
+      setSearchResults(results);
+      setSearchTerm('');
+      setCurrentPage(1);
+
     } catch (error) {
       console.log('Error:', error.message);
     }
   };
 
-  fetchTopRecords();
-}, []);
-const handleEdit = (recordId) => {
-  navigate(`/edit-record/${recordId}`);
-};
-const handleDelete = (recordId) => {
-  return async () => {
+  const handleSortChange = (e) => {
+    setSortCriteria(e.target.value);
+  };
+  const [topRecords, setTopRecords] = useState([]);
+  
+  
+  const handleDelete = (recordId) => {
+    setIsModalOpen(true);
+    setToDeleteID(recordId);
+  };
+
+  const handleConfirm = async () => {
     try {
-      const response = await deleteARecord(recordId);
+      const response = await deleteARecord(toDeleteID);
       console.log('Record deleted:', response);
-      // Fetch records again to update the list
-      setRecords(records.filter((record) => record.id !== recordId));
+      setRecords(records.filter((record) => record.id !== toDeleteID));
+      setIsModalOpen(false);
     } catch (error) {
       console.error('Error deleting record:', error);
     }
   };
-};
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleEditRecord = (recordId,readOnly) => {
+    navigate('/edit-record', { state: { id: recordId,readOnly:readOnly } });
+  };
 
 
-// Modify the select element in the render method to call handleSortChange when its value changes
 
-  const sortedRecords = records.sort((a, b) => {
-    let comparison = 0;
-    // if (orderBy === 'category') {
-    //    comparison = a.category.localeCompare(b.category);
-    // } else if (orderBy === 'title') {
-    //   comparison = a.title.localeCompare(b.title);
-    // } else if (orderBy === 'lastRevised') {
-    //   comparison = new Date(b.lastRevised) - new Date(a.lastRevised);
-    // }
-    return order === 'asc' ? comparison : -comparison;
-  });
+  const [showAllRecords, setShowAllRecords] = useState(false);
+  const handleShowMoreTopRecords = () => {
+    setShowAllRecords(true);
+  };
 
   return (
     <div className="w-full h-screen">
       <NavBar />
-      <div className="flex-grow pt-20 p-6">
+      <ConfirmationModal
+        open={isModalOpen}
+        handleClose={handleClose}
+        handleConfirm={handleConfirm}
+      />
+      <div className="flex-grow  ml-12 mr-12">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-800">My Records</h2>
           <button
-            className="bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors duration-300 shadow-sm"
+            className="bg-pink-500 text-white py-1 px-10 rounded-md hover:bg-pink-600 transition-colors duration-300 shadow-sm"
             onClick={handleAdd}
           >
             Add
@@ -179,80 +196,126 @@ const handleDelete = (recordId) => {
         </div>
         
         <hr className="mb-6" />
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center">
-            <h3 className="text-lg font-semibold text-purple-700 mr-4">Top Records</h3>
-            <div className="grid grid-cols-4 gap-4">
-              {category.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="bg-purple-100 text-purple-700 py-1 px-2 rounded-md text-center"
-                >
-                  {cat.categoryName}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center">
-            <span className="mr-2 text-gray-700">Sort by</span>
-            <select className="border border-gray-300 rounded-md py-1 px-2" value={sortCriteria} onChange={handleSortChange}>
-  <option value="category">Category</option>
-  <option value="question">Question</option>
-  <option value="solution">Solution</option>
-  <option value="lastRevised">Last Revised</option>
+<div className='flex flex-row'>
+  <div className="text-lg font-semibold mb-4 w-full text-grey">Top 5 Records:</div>
+</div>
+<div className="flex flex-nowrap justify-start items-start">
+  {topRecords.length === 0 && (
+    <div className="text-gray-500 text-lg">No records found</div>
+  )}
+  {topRecords.slice(0, topRecords.length).map((record, index) => (
+    <RecordCard record={record} index={index} />
+  ))}
+</div>
 
-</select>
-          </div>
-        </div>
+    <div className="flex justify-between items-center mb-4">
+         <span >All Files</span>
+         <div className="flex items-center">
+           <span className="mr-2 text-gray-700">Sort by</span>
+           <select className="border border-gray-300 rounded-md py-1 px-2" value={sortCriteria} onChange={handleSortChange}>
+             <option value="category">Category</option>
+             <option value="question">Question</option>
+             <option value="solution">Solution</option>
+             <option value="lastRevised">Last Revised</option>
+           </select>
+         </div>
+       </div>
         <TableContainer component={Paper}>
-  <Table>
-    <TableHead>
-      <TableRow>
-        <StyledTableCell>Category</StyledTableCell>
-        <StyledTableCell>Question</StyledTableCell>
-        <StyledTableCell>Solution</StyledTableCell>
-        <StyledTableCell>Last Revised</StyledTableCell>
-        <StyledTableCell>Logic</StyledTableCell>
-        {/* <StyledTableCell>Created By</StyledTableCell> */}
-        <StyledTableCell >Action</StyledTableCell>
-        {/* <StyledTableCell>Days Passed Since Last Visit</StyledTableCell> */}
-      </TableRow>
-    </TableHead>
-    <TableBody>
-      {sortedRecords
-        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-        .map((record) => (
-          <StyledTableRow key={record.id}>
-            <StyledTableCell>
-              {record.categories.map((cat) => cat.categoryName).join(', ')}
-            </StyledTableCell>
-            <StyledTableCell>{record.question}</StyledTableCell>
-            <StyledTableCell>{record.solution}</StyledTableCell>
-            <StyledTableCell>{new Date(...record.metaData.lastVisited).toLocaleDateString(
-    'en-US',
-    {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }
-  )}</StyledTableCell>
-            <StyledTableCell>{record.logic}</StyledTableCell>
-            <StyledTableCell>
-              <div className="flex items-center space-x-2">
-              <FaEdit  onClick={handleEdit(record.id)}/>
-              <FaTrash onClick={handleDelete(record.id)}/>
-              </div>
-              </StyledTableCell>
-            {/* <StyledTableCell>{record.createdByUser.email}</StyledTableCell> */}
-            {/* <StyledTableCell>{record.daysPassedSinceLastVisit}</StyledTableCell> */}
-          </StyledTableRow>
-        ))}
-    </TableBody>
-  </Table>
-</TableContainer>
+          <Table>
+          <TableHead>
+  <TableRow>
+    <StyledTableCell>
+      <TableSortLabel
+        active={orderBy === 'category'}
+        direction={orderBy === 'category' ? order : 'asc'}
+        onClick={() => handleSortRequest('category')}
+      >
+        Category
+      </TableSortLabel>
+    </StyledTableCell>
+    <StyledTableCell>
+      <TableSortLabel
+        active={orderBy === 'question'}
+        direction={orderBy === 'question' ? order : 'asc'}
+        onClick={() => handleSortRequest('question')}
+      >
+        Question
+      </TableSortLabel>
+    </StyledTableCell>
+    <StyledTableCell>
+      <TableSortLabel
+        active={orderBy === 'solution'}
+        direction={orderBy === 'solution' ? order : 'asc'}
+        onClick={() => handleSortRequest('solution')}
+      >
+        Solution
+      </TableSortLabel>
+    </StyledTableCell>
+    <StyledTableCell>
+      <TableSortLabel
+        active={orderBy === 'lastRevised'}
+        direction={orderBy === 'lastRevised' ? order : 'asc'}
+        onClick={() => handleSortRequest('lastRevised')}
+        >
+        Last Revised
+      </TableSortLabel>
+    </StyledTableCell>
+    <StyledTableCell>
+      <TableSortLabel
+        active={orderBy === 'logic'}
+        direction={orderBy === 'logic' ? order : 'asc'}
+        onClick={() => handleSortRequest('logic')}
+      >
+        Logic
+      </TableSortLabel>
+    </StyledTableCell>
+    <StyledTableCell>Action</StyledTableCell>
+  </TableRow>
+</TableHead>
+            <TableBody>
+              {sortedRecords
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((record) => (
+                  <StyledTableRow key={record.id}>
+                    <StyledTableCell>
+                      {record.categories.map((cat) => cat.categoryName).join(', ')}
+                    </StyledTableCell>
+                    <StyledTableCell >
+            {record.question}
+          </StyledTableCell>
+          <StyledTableCell >
+            {record.solution}
+          </StyledTableCell>
+          <StyledTableCell >
+            {new Date(...record.metaData.lastVisited).toLocaleDateString(
+              'en-US',
+              {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              }
+            )}
+          </StyledTableCell>
+          <StyledTableCell >
+            {record.logic}
+          </StyledTableCell>
+                    <StyledTableCell>
+                      <div className="flex items-center space-x-2">
+                        <FaEdit onClick={() => handleEditRecord(record.id,false)} />
+                        <FaTrash onClick={() => handleDelete(record.id)} />
+                        <FaArrowCircleRight onClick={() => handleEditRecord(record.id,true)} />
+                        {/* <FaLink onClick={()=>handleFileView(record.id)} /> */}
+                      </div>
+                    </StyledTableCell>
+                   
+                  </StyledTableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -261,9 +324,10 @@ const handleDelete = (recordId) => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-          </div>
-          </div>
-          );
-          };
-          export default HomePage;
+        />
+      </div>
+    </div>
+  );
+};
+
+export default HomePage;

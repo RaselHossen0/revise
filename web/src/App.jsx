@@ -4,6 +4,7 @@ import LoginScreen from './all/screens/auth/Login';
 import HomePage from './all/screens/dashboar/HomePage';
 import AddNewRecordPage from './all/screens/dashboar/AddNewRecord';
 import RegisterPage from './all/screens/auth/RegisterPage';
+import EditRecordPage from './all/screens/dashboar/EditRecord';
 
 const App = () => {
   return (
@@ -14,6 +15,7 @@ const App = () => {
           <Route path='/' element={<LoginScreen />} />
           <Route path="/dashboard" element={<HomePage />} />
           <Route path="/add-record" element={<AddNewRecordPage />} />
+          <Route path="/edit-record" element={<EditRecordPage />} />
         </Routes>
       </Router>
     </GoogleOAuthProvider>

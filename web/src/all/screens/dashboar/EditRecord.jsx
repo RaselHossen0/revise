@@ -1,37 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { FaCog, FaUser } from 'react-icons/fa'; // Ensure you have react-icons installed
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  addRecordToDB,
+  getRecordDetails,
+  uploadFile,
+  getAllCategories,
+  deleteReferenceFromRecord,
+  deleteARecord
+} from '../../apis/api.js';
 import NavBar from '../NavBar';
 import ReactSelect from 'react-select';
-import { addRecordToDB, getAllCategories, uploadFile, deleteReferenceFromRecord } from '../../apis/api.js';
-import { useNavigate } from 'react-router-dom';
-import { apiUrl } from '../../const.js';
+import ConfirmationModal from '../components/ConfirmationModal';
 
-const AddNewRecordPage = () => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  const [category, setCategory] = useState([]);
-  const [preview, setPreview] = useState(null);
+const EditRecordPage = () => {
+  const location = useLocation();
+  const { state } = location;
+  const navigate = useNavigate();
+  const readOnly=state.readOnly;
+  console.log(state);
+
   const [errorMsg, setErrorMsg] = useState({
     categories: '',
     question: '',
     solution: ''
   });
+
   const [record, setRecord] = useState({
     categories: [],
     question: '',
     solution: '',
     logic: '',
     references: [],
-    checkedForMail: true
+    checkedForMail: false
   });
+
   const [allCategories, setAllCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [checkedForMail, setCheckedForMail] = useState(true);
-  const [isSubmitted, setIssubmitted] = useState(false);
-  const [formFilled, setFormFilled] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [recordId, setRecordId] = useState(null);
-
-  const navigate = useNavigate();
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     const fetchAllCategories = async () => {
@@ -46,7 +55,31 @@ const AddNewRecordPage = () => {
     fetchAllCategories();
   }, []);
 
+  useEffect(() => {
+    const recordId = state.id;
+    setRecordId(recordId);
+    getRecordDetails(recordId)
+      .then((response) => {
+        const recordData = response;
+        setRecord({
+          categories: recordData.categories,
+          question: recordData.question,
+          solution: recordData.solution,
+          logic: recordData.logic,
+          references: recordData.references,
+          checkedForMail: recordData.checkedForMail
+        });
+        setCheckedForMail(recordData.checkedForMail);
+        setSelectedCategories(recordData.categories);
+      })
+      .catch((error) => {
+        console.error('Error fetching record details:', error);
+      });
+  }, [state.id]);
+
   const handleFileChange = (e) => {
+    if (readOnly) return; // Prevent file change if in read-only mode
+
     const file = e.target.files[0];
     setSelectedFile(file);
     if (file) {
@@ -58,47 +91,20 @@ const AddNewRecordPage = () => {
     }
   };
 
- 
-
-  const handleCreateAnotherRecord = () => {
-    // Reset the form and navigate to the new record page
-    setRecord({
-      categories: [],
-      question: '',
-      solution: '',
-      logic: '',
-      references: [],
-      checkedForMail: true,
-    });
-    setSelectedCategories([]);
-    setCheckedForMail(true);
-    setIssubmitted(false);
-    setFormFilled(false);
-    setSelectedFile(null);
-    setRecordId(null);
-    navigate('/add-record');
-  };
-
-  const handleFileSelect = (e) => {
-    setSelectedFile(e.target.files[0]);
-  };
-
   const handleFileUpload = async () => {
     try {
       const updateRecord = await uploadFile(selectedFile, recordId);
       setRecord(updateRecord);
-      setIssubmitted(false);
     } catch (error) {
-      console.error(error);
+      console.log('Error uploading file:', error);
     }
     setSelectedFile(null);
   };
 
   const handleChange = (e) => {
+    if (readOnly) return; // Prevent field change if in read-only mode
+
     const { name, value } = e.target;
-    if (value.trim() !== '') {
-      setErrorMsg((prevErrorMsg) => ({ ...prevErrorMsg, [name]: '' }));
-    }
     setRecord((prevRecord) => ({
       ...prevRecord,
       [name]: value
@@ -106,17 +112,38 @@ const AddNewRecordPage = () => {
   };
 
   const handleCategoryChange = (selectedOptions) => {
+    if (readOnly) return; // Prevent category change if in read-only mode
+
     const categories = selectedOptions.map(option => option.value);
     setSelectedCategories(categories);
     setErrorMsg((prevErrorMsg) => ({ ...prevErrorMsg, categories: '' }));
   };
 
   const handleCheckBoxChange = (event) => {
+    if (readOnly) return; // Prevent checkbox change if in read-only mode
+
     setCheckedForMail(event.target.checked);
   }
 
+  const handleDeleteChange = () => {
+    setIsDeleteModalOpen(true);
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteARecord(recordId);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error deleting record:', error);
+    } finally {
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (readOnly) return; // Prevent form submission if in read-only mode
 
     const errorMsg = {};
     if (selectedCategories.length > 3) {
@@ -140,7 +167,7 @@ const AddNewRecordPage = () => {
     try {
       const user = { email: localStorage.getItem('email') };
       const recordData = {
-        id: null,
+        id: state.id,
         categories: selectedCategories,
         question: record.question,
         solution: record.solution,
@@ -150,15 +177,16 @@ const AddNewRecordPage = () => {
         checkedForMail: checkedForMail
       };
 
-      const id = await addRecordToDB(recordData);
-      setRecordId(id);
-      setIssubmitted(true);
+      await addRecordToDB(recordData);
+      navigate('/dashboard');
     } catch (error) {
       console.error(error);
     }
   };
 
   const handleRemoveReference = async (referenceIndex) => {
+    if (readOnly) return; // Prevent removing reference if in read-only mode
+
     const referenceId = record.references[referenceIndex].id;
     try {
       await deleteReferenceFromRecord(recordId, referenceId);
@@ -173,42 +201,10 @@ const AddNewRecordPage = () => {
 
   return (
     <div className="">
-     {isSubmitted && (
-        <div className="fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg max-w-md">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Record Added Successfully</h2>
-            <p className="mb-6">Do you want to upload a file?</p>
-            <div className="flex justify-end">
-              <button
-
-                className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md mr-4 hover:bg-gray-400 transition-colors duration-300"
-                onClick={handleCreateAnotherRecord}
-              >
-                No
-              </button>
-              <button
-
-                className="bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors duration-300"
-                onClick={handleFileUpload}
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <NavBar />
-      {errorMsg.categories && <p className="text-red-500 text-xs italic">{errorMsg.categories}</p>}
-      {errorMsg.question && <p className="text-red-500 text-xs italic">{errorMsg.question}</p>}
-      {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
-
-     
-        
       <div className='w-full h-screen  '>
         <div className="max-w-4xl  p-6 bg-white mx-auto rounded-lg border shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">Add New Record</h1>
-          <h4 className='mb-2'>Record your findings / experiences for revision as it may help you solving doubts in the future.</h4>
-
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Edit Record</h1>
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <label className="block text-gray-700 mb-2">Category</label>
@@ -218,7 +214,9 @@ const AddNewRecordPage = () => {
                 options={allCategories.map((cat) => ({ value: cat, label: cat.categoryName }))}
                 className="basic-multi-select"
                 classNamePrefix="select"
+                value={selectedCategories.map((cat) => ({ value: cat, label: cat.categoryName }))}
                 onChange={handleCategoryChange}
+                isDisabled={readOnly}
               />
               {errorMsg.categories && <p className="text-red-500 text-xs italic">{errorMsg.categories}</p>}
             </div>
@@ -231,6 +229,7 @@ const AddNewRecordPage = () => {
                 className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 value={record.question}
                 onChange={handleChange}
+                readOnly={readOnly}
               ></textarea>
               {errorMsg.question && <p className="text-red-500 text-xs italic">{errorMsg.question}</p>}
             </div>
@@ -243,6 +242,7 @@ const AddNewRecordPage = () => {
                 className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 value={record.solution}
                 onChange={handleChange}
+                readOnly={readOnly}
               ></textarea>
               {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
             </div>
@@ -256,75 +256,105 @@ const AddNewRecordPage = () => {
                 className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 value={record.logic}
                 onChange={handleChange}
+                readOnly={readOnly}
               />
             </div>
-           
+            
             <div className="mb-6">
-  <label className="block text-gray-700 mb-2">References:</label>
-  {record && record.references && record.references.length > 0 ? (
-    <table className="table-auto">
-      <thead>
-        <tr>
-          <th className="px-4 py-2">Name/URI</th>
-          <th className="px-4 py-2">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {record.references.map((reference, index) => (
-          <tr key={reference.id}>
-            <td className="border px-4 py-2">{reference.referenceNameOrURI}</td>
-            <td className="border px-4 py-2">
-              <button onClick={() => handleRemoveReference(index)}>
-                Unlink
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  ) : (
-    <p>No references found.</p>
-  )}
-</div>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 mb-2">Upload Files</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center text-gray-500">
-                <input type="file" className="hidden" id="file-upload" onChange={handleFileChange} />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <p>Drag files here or click to upload</p>
-                </label>
-              </div>
-              {preview && (
-                <div className="mt-4">
-                  <img src={preview} alt="File preview" className="w-64 h-64 object-cover" />
-                </div>
-              )}
-            </div>
-
-            <div className="mb-6 flex items-center">
-              <label className="block text-gray-700 mr-4">Part of Mail Reminders?</label>
-              <input
-                type="checkbox"
-                className="form-checkbox h-5 w-5 text-pink-500"
-                checked={checkedForMail}
-                onChange={handleCheckBoxChange}
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <button type="button" className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md mr-4 hover:bg-gray-400 transition-colors duration-300" onClick={handleCreateAnotherRecord}>
-                Cancel
-              </button>
-              <button type="submit" className="bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors duration-300">
-                Save changes
-              </button>
-            </div>
-          </form>
+              <label className="block text-gray-700 mb-2">References:</label>
+              {record.references.length > 0 ? (
+                <table className="table-auto">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2">Name/URI</th>
+                      <th className="px-4 py-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {record.references.map((reference, index) => (
+                      <tr key={reference.id}>
+                        <td className="border px-4 py-2">{reference.referenceNameOrURI}</td>
+                        <td className="border px-4 py-2">
+                          {!readOnly && (
+                            
+                            <button
+                            className="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors duration-300"
+                            onClick={() => handleRemoveReference(index)}
+                          >
+                            Unlink
+                          </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No references linked.</p>
+          )}
         </div>
-      </div>
+
+        {!readOnly && (
+          <div className="mb-6">
+            <label className="block text-gray-700 mb-2">Link New Reference</label>
+            <input
+              type="file"
+              name="file"
+              className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+              onChange={handleFileChange}
+            />
+            {selectedFile && (
+              <button
+                className="mt-2 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-300"
+                onClick={handleFileUpload}
+              >
+                Upload
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="mb-6">
+          <label className="block text-gray-700 mb-2">Notify Team by Email</label>
+          <input
+            type="checkbox"
+            name="checkedForMail"
+            checked={checkedForMail}
+            onChange={handleCheckBoxChange}
+            className="form-checkbox h-5 w-5 text-pink-500"
+            disabled={readOnly}
+          />
+        </div>
+
+        {!readOnly && (
+          <div className="flex items-center justify-between">
+            <button
+              type="submit"
+              className="bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors duration-300"
+            >
+              Submit
+            </button>
+            <button
+              type="button"
+              className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition-colors duration-300"
+              onClick={handleDeleteChange}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      </form>
     </div>
-  );
+    {isDeleteModalOpen && (
+      <ConfirmationModal
+        open={isDeleteModalOpen}
+        handleClose={() => setIsDeleteModalOpen(false)}
+        handleConfirm={handleConfirmDelete}
+      />
+    )}
+  </div>
+</div>
+);
 };
 
-export default AddNewRecordPage;
+export default EditRecordPage;
