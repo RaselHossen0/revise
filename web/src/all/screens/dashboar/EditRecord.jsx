@@ -6,7 +6,8 @@ import {
   uploadFile,
   getAllCategories,
   deleteReferenceFromRecord,
-  deleteARecord
+  deleteARecord,
+  getFile
 } from '../../apis/api.js';
 import NavBar from '../NavBar';
 import ReactSelect from 'react-select';
@@ -16,8 +17,7 @@ const EditRecordPage = () => {
   const location = useLocation();
   const { state } = location;
   const navigate = useNavigate();
-  const readOnly=state.readOnly;
-  console.log(state);
+  const readOnly = state.readOnly;
 
   const [errorMsg, setErrorMsg] = useState({
     categories: '',
@@ -38,9 +38,9 @@ const EditRecordPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [checkedForMail, setCheckedForMail] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [recordId, setRecordId] = useState(null);
-  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     const fetchAllCategories = async () => {
@@ -54,51 +54,61 @@ const EditRecordPage = () => {
 
     fetchAllCategories();
   }, []);
-
   useEffect(() => {
     const recordId = state.id;
     setRecordId(recordId);
     getRecordDetails(recordId)
-      .then((response) => {
-        const recordData = response;
-        setRecord({
-          categories: recordData.categories,
-          question: recordData.question,
-          solution: recordData.solution,
-          logic: recordData.logic,
-          references: recordData.references,
-          checkedForMail: recordData.checkedForMail
+        .then((response) => {
+            const recordData = response;
+            setRecord({
+                categories: recordData.categories,
+                question: recordData.question,
+                solution: recordData.solution,
+                logic: recordData.logic,
+                references: recordData.references,
+                checkedForMail: recordData.checkedForMail
+            });
+            setCheckedForMail(recordData.checkedForMail);
+            for (const reff of recordData.references) {
+              console.log(reff);
+                getFile(reff.referenceLocation).then((response) => {
+                  const blob = new Blob([response],{ type: 'image/png' }); 
+                  const objectURL = URL.createObjectURL(blob);
+                  console.log(objectURL);
+                    //console.log(response);
+                    setSelectedFiles(prevFiles => [...prevFiles,objectURL]);
+                });
+            }
+            setSelectedCategories(recordData.categories);
+        })
+        .catch((error) => {
+            console.error('Error fetching record details:', error);
         });
-        setCheckedForMail(recordData.checkedForMail);
-        setSelectedCategories(recordData.categories);
-      })
-      .catch((error) => {
-        console.error('Error fetching record details:', error);
-      });
-  }, [state.id]);
+}, [state.id]);
+
 
   const handleFileChange = (e) => {
     if (readOnly) return; // Prevent file change if in read-only mode
 
-    const file = e.target.files[0];
-    setSelectedFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+    const files = Array.from(e.target.files);
+    setSelectedFiles(files);
+
+    const filePreviews = files.map(file => URL.createObjectURL(file));
+    setPreviews(filePreviews);
   };
 
   const handleFileUpload = async () => {
     try {
-      const updateRecord = await uploadFile(selectedFile, recordId);
-      setRecord(updateRecord);
+      for (const file of selectedFiles) {
+        await uploadFile(file, recordId);
+      }
+      // Update the record after uploading files
+      const updatedRecord = await getRecordDetails(recordId);
+      setRecord(updatedRecord);
     } catch (error) {
-      console.log('Error uploading file:', error);
+      console.error('Error uploading files:', error);
     }
-    setSelectedFile(null);
+    setSelectedFiles([]);
   };
 
   const handleChange = (e) => {
@@ -123,11 +133,11 @@ const EditRecordPage = () => {
     if (readOnly) return; // Prevent checkbox change if in read-only mode
 
     setCheckedForMail(event.target.checked);
-  }
+  };
 
   const handleDeleteChange = () => {
     setIsDeleteModalOpen(true);
-  }
+  };
 
   const handleConfirmDelete = async () => {
     try {
@@ -200,11 +210,11 @@ const EditRecordPage = () => {
   };
 
   return (
-    <div className="">
+    <div className="w-full h-screen">
       <NavBar />
-      <div className='w-full h-screen  '>
-        <div className="max-w-4xl  p-6 bg-white mx-auto rounded-lg border shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">Edit Record</h1>
+      <div className='px-12 pb-4'>
+        <div className="p-6 bg-white mx-auto rounded-lg border shadow-sm">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">{readOnly ? 'Record Details' : 'Edit Record'}</h1>
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <label className="block text-gray-700 mb-2">Category</label>
@@ -259,7 +269,7 @@ const EditRecordPage = () => {
                 readOnly={readOnly}
               />
             </div>
-            
+
             <div className="mb-6">
               <label className="block text-gray-700 mb-2">References:</label>
               {record.references.length > 0 ? (
@@ -276,85 +286,98 @@ const EditRecordPage = () => {
                         <td className="border px-4 py-2">{reference.referenceNameOrURI}</td>
                         <td className="border px-4 py-2">
                           {!readOnly && (
-                            
                             <button
-                            className="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors duration-300"
-                            onClick={() => handleRemoveReference(index)}
-                          >
-                            Unlink
-                          </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No references linked.</p>
-          )}
-        </div>
+                              className="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors duration-300"
+                              onClick={() => handleRemoveReference(index)}
+                            >
+                              Unlink
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No references linked.</p>
+              )}
+            </div>
 
-        {!readOnly && (
-          <div className="mb-6">
-            <label className="block text-gray-700 mb-2">Link New Reference</label>
-            <input
-              type="file"
-              name="file"
-              className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-              onChange={handleFileChange}
-            />
-            {selectedFile && (
-              <button
-                className="mt-2 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-300"
-                onClick={handleFileUpload}
-              >
-                Upload
-              </button>
+            {!readOnly && (
+              <div className="mb-6">
+                <label className="block text-gray-700 mb-2">Link New Reference</label>
+                <input
+                  type="file"
+                  name="files"
+                  className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  multiple
+                  onChange={handleFileChange}
+                />
+                {selectedFiles.length > 0 && (
+                  <button
+                    className="mt-2 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-300"
+                    onClick={handleFileUpload}
+                  >
+                    Upload
+                  </button>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        <div className="mb-6">
-          <label className="block text-gray-700 mb-2">Notify Team by Email</label>
-          <input
-            type="checkbox"
-            name="checkedForMail"
-            checked={checkedForMail}
-            onChange={handleCheckBoxChange}
-            className="form-checkbox h-5 w-5 text-pink-500"
-            disabled={readOnly}
-          />
+            {readOnly && (
+              <div className="mb-6">
+                <label className="block text-gray-700 mb-2">File Previews</label>
+                <div className="flex flex-wrap gap-4">
+                  {previews.map((preview, index) => (
+                    <div key={index} className="w-32 h-32 border border-gray-300 rounded-md overflow-hidden">
+                      <img src={preview} alt="File preview" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="block text-gray-700 mb-2">Notify Team by Email</label>
+              <input
+                type="checkbox"
+                name="checkedForMail"
+                checked={checkedForMail}
+                onChange={handleCheckBoxChange}
+                className="form-checkbox h-5 w-5 text-pink-500"
+                disabled={readOnly}
+              />
+            </div>
+
+            {!readOnly && (
+              <div className="flex items-center justify-between">
+                <button
+                  type="submit"
+                  className="bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors duration-300"
+                >
+                  Submit
+                </button>
+                <button
+                  type="button"
+                  className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition-colors duration-300"
+                  onClick={handleDeleteChange}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </form>
         </div>
-
-        {!readOnly && (
-          <div className="flex items-center justify-between">
-            <button
-              type="submit"
-              className="bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors duration-300"
-            >
-              Submit
-            </button>
-            <button
-              type="button"
-              className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition-colors duration-300"
-              onClick={handleDeleteChange}
-            >
-              Delete
-            </button>
-          </div>
+        {isDeleteModalOpen && (
+          <ConfirmationModal
+            open={isDeleteModalOpen}
+            handleClose={() => setIsDeleteModalOpen(false)}
+            handleConfirm={handleConfirmDelete}
+          />
         )}
-      </form>
+      </div>
     </div>
-    {isDeleteModalOpen && (
-      <ConfirmationModal
-        open={isDeleteModalOpen}
-        handleClose={() => setIsDeleteModalOpen(false)}
-        handleConfirm={handleConfirmDelete}
-      />
-    )}
-  </div>
-</div>
-);
+  );
 };
 
 export default EditRecordPage;

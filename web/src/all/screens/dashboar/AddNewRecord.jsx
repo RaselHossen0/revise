@@ -8,7 +8,6 @@ import { apiUrl } from '../../const.js';
 
 const AddNewRecordPage = () => {
   const user = JSON.parse(localStorage.getItem('user'));
-  const [category, setCategory] = useState([]);
   const [preview, setPreview] = useState(null);
   const [errorMsg, setErrorMsg] = useState({
     categories: '',
@@ -26,10 +25,10 @@ const AddNewRecordPage = () => {
   const [allCategories, setAllCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [checkedForMail, setCheckedForMail] = useState(true);
-  const [isSubmitted, setIssubmitted] = useState(false);
-  const [formFilled, setFormFilled] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [recordId, setRecordId] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   const navigate = useNavigate();
 
@@ -58,8 +57,6 @@ const AddNewRecordPage = () => {
     }
   };
 
- 
-
   const handleCreateAnotherRecord = () => {
     // Reset the form and navigate to the new record page
     setRecord({
@@ -72,23 +69,21 @@ const AddNewRecordPage = () => {
     });
     setSelectedCategories([]);
     setCheckedForMail(true);
-    setIssubmitted(false);
-    setFormFilled(false);
+    setIsSubmitted(false);
     setSelectedFile(null);
     setRecordId(null);
     navigate('/add-record');
   };
 
-  const handleFileSelect = (e) => {
-    setSelectedFile(e.target.files[0]);
-  };
-
   const handleFileUpload = async () => {
     try {
+      setUploadStatus('Uploading...');
       const updateRecord = await uploadFile(selectedFile, recordId);
       setRecord(updateRecord);
-      setIssubmitted(false);
+      setUploadStatus('Upload successful!');
+      setIsSubmitted(false);
     } catch (error) {
+      setUploadStatus('Upload failed. Please try again.');
       console.error(error);
     }
     setSelectedFile(null);
@@ -113,7 +108,7 @@ const AddNewRecordPage = () => {
 
   const handleCheckBoxChange = (event) => {
     setCheckedForMail(event.target.checked);
-  }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -152,7 +147,7 @@ const AddNewRecordPage = () => {
 
       const id = await addRecordToDB(recordData);
       setRecordId(id);
-      setIssubmitted(true);
+      setIsSubmitted(true);
     } catch (error) {
       console.error(error);
     }
@@ -172,22 +167,21 @@ const AddNewRecordPage = () => {
   };
 
   return (
-    <div className="">
-     {isSubmitted && (
+    <div className="w-full h-screen">
+      {isSubmitted && (
         <div className="fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg max-w-md">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Record Added Successfully</h2>
             <p className="mb-6">Do you want to upload a file?</p>
+            <p>{uploadStatus}</p>
             <div className="flex justify-end">
               <button
-
                 className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md mr-4 hover:bg-gray-400 transition-colors duration-300"
                 onClick={handleCreateAnotherRecord}
               >
                 No
               </button>
               <button
-
                 className="bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors duration-300"
                 onClick={handleFileUpload}
               >
@@ -198,14 +192,8 @@ const AddNewRecordPage = () => {
         </div>
       )}
       <NavBar />
-      {errorMsg.categories && <p className="text-red-500 text-xs italic">{errorMsg.categories}</p>}
-      {errorMsg.question && <p className="text-red-500 text-xs italic">{errorMsg.question}</p>}
-      {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
-
-     
-        
-      <div className='w-full h-screen  '>
-        <div className="max-w-4xl  p-6 bg-white mx-auto rounded-lg border shadow-sm">
+      <div className='pl-12 pr-40 pb-4'>
+        <div className="p-6 bg-white mx-auto rounded-lg border shadow-sm">
           <h1 className="text-2xl font-bold text-gray-800 mb-6">Add New Record</h1>
           <h4 className='mb-2'>Record your findings / experiences for revision as it may help you solving doubts in the future.</h4>
 
@@ -258,34 +246,34 @@ const AddNewRecordPage = () => {
                 onChange={handleChange}
               />
             </div>
-           
+
             <div className="mb-6">
-  <label className="block text-gray-700 mb-2">References:</label>
-  {record && record.references && record.references.length > 0 ? (
-    <table className="table-auto">
-      <thead>
-        <tr>
-          <th className="px-4 py-2">Name/URI</th>
-          <th className="px-4 py-2">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {record.references.map((reference, index) => (
-          <tr key={reference.id}>
-            <td className="border px-4 py-2">{reference.referenceNameOrURI}</td>
-            <td className="border px-4 py-2">
-              <button onClick={() => handleRemoveReference(index)}>
-                Unlink
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  ) : (
-    <p>No references found.</p>
-  )}
-</div>
+              <label className="block text-gray-700 mb-2">References:</label>
+              {record && record.references && record.references.length > 0 ? (
+                <table className="table-auto">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2">Name/URI</th>
+                      <th className="px-4 py-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {record.references.map((reference, index) => (
+                      <tr key={reference.id}>
+                        <td className="border px-4 py-2">{reference.referenceNameOrURI}</td>
+                        <td className="border px-4 py-2">
+                          <button onClick={() => handleRemoveReference(index)}>
+                            Unlink
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No references found.</p>
+              )}
+            </div>
 
             <div className="mb-6">
               <label className="block text-gray-700 mb-2">Upload Files</label>

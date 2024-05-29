@@ -67,11 +67,14 @@ const LoginScreen = () => {
   }, [profile]);
 
   return (
-    <div className="h-screen w-full bg-cover bg-center flex items-center justify-center" style={{ backgroundImage: "url('https://source.unsplash.com/random')" }}>
-      <div className="bg-white bg-opacity-75 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
-        <div className="mt-4">
-          <GoogleLogin
+    <div className="h-screen w-full bg-cover bg-center flex items-center justify-center" style={{ backgroundImage: "url('./login.png')" }}>
+      <div className="bg-white bg-opacity-90 p-8 rounded-lg shadow-lg w-full max-w-md">
+        <img src="./logo2.png" alt="logo" className="w-23 mx-auto mb-10 sm:mb-5" />
+        <h2 className="text-2xl font-bold text-center mb-6">Login to your account</h2>
+        
+        <div className="mt-4 flex justify-center">
+          <GoogleLogin 
+            size-100 
             onSuccess={credentialResponse => {
               console.log(credentialResponse);
               setUser(credentialResponse);

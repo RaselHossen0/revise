@@ -11,6 +11,7 @@ const api = axios.create({
 const makeRequest = async (method, url, data = null, params = null, contentType) => {
   try {
 const headers = {};
+     console.log(data);
     if(contentType){
       headers['Content-Type'] = contentType;
     }else{
@@ -54,7 +55,11 @@ const uploadFile = async (file, recordId) => {
 
 const searchRecords = async (searchModel) => {
   const url = '/revise/search';
-  return makeRequest('post', url, searchModel);
+  const mailId = localStorage.getItem('email')
+  const formData = new FormData();
+  formData.append('userName', mailId);
+  formData.append('searchstr', searchModel);
+  return makeRequest('post', url,formData, null);
 };
 
 
@@ -112,5 +117,10 @@ const deleteARecord = async (recordId) => {
   return makeRequest('delete', url);
 };
 
-export { addRecordToDB, uploadFile, searchRecords, getRecordDetails, applyConfigChangesApi,fetchRecordsByIds,
+const getFile = async (path) => {
+  const url = `/file/file?path=${path}`;
+  return makeRequest('get', url);
+}
+
+export { addRecordToDB, uploadFile, searchRecords, getRecordDetails, applyConfigChangesApi,fetchRecordsByIds,getFile,
   getAllCategories, deleteReferenceFromRecord,fetchConfigurationsApi, getRevisionDetails, fetchSuggestionsApi,deleteARecord };

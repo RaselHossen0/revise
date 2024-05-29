@@ -43,6 +43,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
+
 const HomePage = () => {
   const [records, setRecords] = useState([]);
   const [page, setPage] = useState(0);
@@ -101,47 +102,43 @@ const HomePage = () => {
   };
 
   const handleSortRequest = (property) => {
+    setSortCriteria(property);
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
   };
   
   const sortedRecords = records.sort((a, b) => {
-    let comparison = 0;
-    if (a[orderBy] < b[orderBy]) {
-      comparison = -1;
-    } else if (a[orderBy] > b[orderBy]) {
-      comparison = 1;
+    if (orderBy === 'lastRevised') {
+     console.log(a.metaData.lastVisited);
+      // Sorting by date array (assuming 'lastRevised' is an array of dates)
+      const [yearA, monthA, dayA, hourA, minuteA, secondA, nanosecondA] = a.metaData.lastVisited;
+const millisecondsA = Math.floor(nanosecondA / 1000000);
+const dateA = new Date(yearA, monthA - 1, dayA, hourA, minuteA, secondA, millisecondsA);
+
+const [yearB, monthB, dayB, hourB, minuteB, secondB, nanosecondB] = b.metaData.lastVisited;
+const millisecondsB = Math.floor(nanosecondB / 1000000);
+const dateB = new Date(yearB, monthB - 1, dayB, hourB, minuteB, secondB, millisecondsB);
+      console.log(dateA);
+      return order === 'asc' ? dateA - dateB : dateB - dateA;
+    } else {
+      // Default sorting for other properties (e.g., strings like 'category')
+      const valueA = typeof a[orderBy] === 'string' ? a[orderBy].toLowerCase() : a[orderBy];
+      const valueB = typeof b[orderBy] === 'string' ? b[orderBy].toLowerCase() : b[orderBy];
+  
+      if (valueA < valueB) {
+        return order === 'asc' ? -1 : 1;
+      }
+      if (valueA > valueB) {
+        return order === 'asc' ? 1 : -1;
+      }
+      return 0;
     }
-    return order === 'asc' ? comparison : -comparison;
   });
 
   const [sortCriteria, setSortCriteria] = useState('category');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    try {
-      let searchModel = {
-        searchstr: searchTerm,
-        userName: localStorage.getItem("mail")
-      }
-      let results = await searchRecords(searchModel);
-      
-      results.sort((a, b) => a[sortCriteria].localeCompare(b[sortCriteria]));
-
-      setSearchResults(results);
-      setSearchTerm('');
-      setCurrentPage(1);
-
-    } catch (error) {
-      console.log('Error:', error.message);
-    }
-  };
-
-  const handleSortChange = (e) => {
-    setSortCriteria(e.target.value);
-  };
   const [topRecords, setTopRecords] = useState([]);
   
   
@@ -172,9 +169,7 @@ const HomePage = () => {
 
 
   const [showAllRecords, setShowAllRecords] = useState(false);
-  const handleShowMoreTopRecords = () => {
-    setShowAllRecords(true);
-  };
+  
 
   return (
     <div className="w-full h-screen">
@@ -212,12 +207,16 @@ const HomePage = () => {
          <span >All Files</span>
          <div className="flex items-center">
            <span className="mr-2 text-gray-700">Sort by</span>
-           <select className="border border-gray-300 rounded-md py-1 px-2" value={sortCriteria} onChange={handleSortChange}>
-             <option value="category">Category</option>
-             <option value="question">Question</option>
-             <option value="solution">Solution</option>
-             <option value="lastRevised">Last Revised</option>
-           </select>
+           <select
+  className="border border-gray-300 rounded-md py-1 px-2"
+  value={sortCriteria}
+  onChange={(e) => handleSortRequest(e.target.value)}
+>
+  <option value="category">Category</option>
+  <option value="question">Question</option>
+  <option value="solution">Solution</option>
+  <option value="lastRevised">Last Revised</option>
+</select>
          </div>
        </div>
         <TableContainer component={Paper}>
@@ -287,26 +286,28 @@ const HomePage = () => {
             {record.solution}
           </StyledTableCell>
           <StyledTableCell >
-            {new Date(...record.metaData.lastVisited).toLocaleDateString(
-              'en-US',
-              {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-              }
-            )}
-          </StyledTableCell>
+  {(() => {
+    const [year, month, day, hour, minute, second, nanosecond] = record.metaData.lastVisited;
+    const milliseconds = Math.floor(nanosecond / 1000000);
+    const date = new Date(year, month - 1, day, hour, minute, second, milliseconds);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  })()}
+</StyledTableCell>
           <StyledTableCell >
             {record.logic}
           </StyledTableCell>
                     <StyledTableCell>
                       <div className="flex items-center space-x-2">
-                        <FaEdit onClick={() => handleEditRecord(record.id,false)} />
-                        <FaTrash onClick={() => handleDelete(record.id)} />
-                        <FaArrowCircleRight onClick={() => handleEditRecord(record.id,true)} />
+                      <FaEdit className="text-blue-500" onClick={() => handleEditRecord(record.id,false)} />
+<FaTrash className="text-red-500" onClick={() => handleDelete(record.id)} />
+<FaArrowCircleRight className="text-green-500" onClick={() => handleEditRecord(record.id,true)} />
                         {/* <FaLink onClick={()=>handleFileView(record.id)} /> */}
                       </div>
                     </StyledTableCell>
