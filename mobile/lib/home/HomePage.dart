@@ -11,10 +11,19 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+class UniqueCategory {
+  final String categoryName;
+  final int count;
+  final List<Record> records;
+
+  UniqueCategory(this.categoryName, this.count, this.records);
+}
+
 class _HomePageState extends State<HomePage> {
   List<RecordCategory> categories = [];
   List<Record> records = [];
   List<Record> filteredRecords = [];
+  List<UniqueCategory> uniqueCategories = [];
   String searchQuery = '';
   String sortCriteria = 'Last Revised';
 
@@ -22,10 +31,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     fetchCategoriesAndRecords();
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus) {
+        setState(() {
+          showFloatingSearchResults = false;
+        });
+      }
+    });
   }
 
   Future<void> fetchCategoriesAndRecords() async {
-    var categoryResponse = await ApiServices().getAllCategories();
     var recordsResponse = await ApiServices().getRevisionDetails();
     setState(() {
       var recordsList = recordsResponse as List;
@@ -46,22 +61,53 @@ class _HomePageState extends State<HomePage> {
         );
       }).toList();
       filteredRecords = List.from(records);
-      categories = (categoryResponse as List)
-          .map((element) =>
-              RecordCategory(element['id'], element['categoryName']))
+      categories = records
+          .where((element) => element.categories.isNotEmpty)
+          .map((e) => e.categories.first)
+          .toSet()
           .toList();
+      updateUniqueCategories(updateRecords: true);
     });
+  }
+
+  List<Record> searchResults = [];
+
+  void updateUniqueCategories({bool updateRecords = false}) {
+    final uniqueCategoryNames = categories
+        .where((element) => element.categoryName != null)
+        .map((e) => e.categoryName)
+        .toSet()
+        .toList();
+
+    uniqueCategories = uniqueCategoryNames.map((e) {
+      return UniqueCategory(
+        e,
+        filteredRecords
+            .where((record) => record.categories.first.categoryName == e)
+            .length,
+        filteredRecords
+            .where((element) => element.categories.first.categoryName == e)
+            .toList(),
+      );
+    }).toList();
+    if (updateRecords) {
+      uniqueCategories.sort((a, b) => b.count.compareTo(a.count));
+    }
+    if (!updateRecords)
+      uniqueCategories.sort((a, b) => a.categoryName.compareTo(b.categoryName));
+
+    // Sort based on count
   }
 
   void filterRecords(String query) {
     setState(() {
       searchQuery = query;
-      filteredRecords = records
+      searchResults = records
           .where((record) =>
               record.question.toLowerCase().contains(query.toLowerCase()) ||
               record.solution.toLowerCase().contains(query.toLowerCase()))
           .toList();
-      sortRecords(sortCriteria);
+      showFloatingSearchResults = true;
     });
   }
 
@@ -69,15 +115,44 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       sortCriteria = criteria;
       if (criteria == 'Last Revised') {
-        filteredRecords.sort((a, b) =>
-            b.metaData['lastVisited'].compareTo(a.metaData['lastVisited']));
-      } else if (criteria == 'Title') {
+        filteredRecords.sort((a, b) {
+          var dateA = DateTime(
+              a.metaData['lastVisited'][0],
+              a.metaData['lastVisited'][1],
+              a.metaData['lastVisited'][2],
+              a.metaData['lastVisited'][3],
+              a.metaData['lastVisited'][4],
+              a.metaData['lastVisited'][5]);
+          var dateB = DateTime(
+              b.metaData['lastVisited'][0],
+              b.metaData['lastVisited'][1],
+              b.metaData['lastVisited'][2],
+              b.metaData['lastVisited'][3],
+              b.metaData['lastVisited'][4],
+              b.metaData['lastVisited'][5]);
+          return dateB.compareTo(dateA);
+        });
+      } else if (criteria == 'Question') {
         filteredRecords.sort((a, b) => a.question.compareTo(b.question));
+      } else if (criteria == 'Solution') {
+        filteredRecords.sort((a, b) => a.solution.compareTo(b.solution));
+      } else if (criteria == 'Logic') {
+        filteredRecords.sort((a, b) => a.logic.compareTo(b.logic));
       } else if (criteria == 'Category') {
         filteredRecords.sort((a, b) => a.categories.first.categoryName
             .compareTo(b.categories.first.categoryName));
       }
+      updateUniqueCategories();
     });
+  }
+
+  bool showFloatingSearchResults = false;
+  final FocusNode _searchFocusNode = FocusNode();
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    _searchFocusNode.dispose();
   }
 
   @override
@@ -105,112 +180,206 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search',
-                hintStyle: TextStyle(color: Colors.pinkAccent),
-                prefixIcon: Icon(Icons.search, color: Colors.pinkAccent),
-                filled: true,
-                fillColor: Colors.pink[50],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                  borderSide: BorderSide.none,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (_searchFocusNode.hasFocus) _searchFocusNode.unfocus();
+          setState(() {
+            showFloatingSearchResults = false;
+          });
+        },
+        child: Column(
+          children: [
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search',
+                  hintStyle: TextStyle(color: Colors.pinkAccent),
+                  prefixIcon: Icon(Icons.search, color: Colors.pinkAccent),
+                  filled: true,
+                  fillColor: Colors.pink[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                    borderSide: BorderSide(color: Colors.pinkAccent),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                    borderSide: BorderSide(color: Colors.pinkAccent),
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                  borderSide: BorderSide(color: Colors.pinkAccent),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                  borderSide: BorderSide(color: Colors.pinkAccent),
-                ),
+                cursorColor: Colors.pinkAccent,
+                style: TextStyle(color: Colors.pinkAccent),
+                onChanged: filterRecords,
               ),
-              cursorColor: Colors.pinkAccent,
-              style: TextStyle(color: Colors.pinkAccent),
-              onChanged: filterRecords,
             ),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: Text(
-                    'Top Records',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8),
-                SizedBox(
-                  height: height * 0.1,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    shrinkWrap: true,
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      return RecordCard(
-                        title: categories[index].categoryName,
-                        count: 10,
-                        color: Colors.pink,
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: Text(
-                    'All Files',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text('Sort by'),
-                    SizedBox(width: 8),
-                    DropdownButton<String>(
-                      value: sortCriteria,
-                      items: [
-                        DropdownMenuItem(
-                          value: 'Last Revised',
-                          child: Text('Last Revised'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Title',
-                          child: Text('Title'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Category',
-                          child: Text('Category'),
+            if (showFloatingSearchResults)
+              SizedBox(
+                height: height * 0.3,
+                child: SingleChildScrollView(
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          spreadRadius: 5,
                         ),
                       ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          sortRecords(value);
-                        }
+                    ),
+                    child: Column(
+                      children: searchResults.map((record) {
+                        return ListTile(
+                          onFocusChange: (value) {
+                            setState(() {
+                              showFloatingSearchResults = false;
+                              _searchFocusNode.unfocus();
+                            });
+                          },
+                          title: Text(record.question),
+                          subtitle: Text(record.solution),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RecordDetailPage(
+                                  record: record,
+                                  allRecords: records,
+                                ),
+                              ),
+                            );
+                            _searchFocusNode.unfocus();
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: ListView(
+                children: [
+                  SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Text(
+                      'Top Records',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  SizedBox(
+                    height: height * 0.1,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      itemCount: uniqueCategories.length,
+                      itemBuilder: (context, index) {
+                        return RecordCard(
+                          title: uniqueCategories[index].categoryName,
+                          count: uniqueCategories[index].count,
+                          color: Colors.pink,
+                        );
                       },
                     ),
-                  ],
-                ),
-                ...filteredRecords.map((record) => RecordTile(record)).toList(),
-              ],
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      SizedBox(width: 15),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                        child: Text(
+                          'All Files',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Spacer(),
+                      DropdownButton<String>(
+                        value: sortCriteria,
+                        items: [
+                          DropdownMenuItem(
+                            value: 'Category',
+                            child: Text('Category'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Last Revised',
+                            child: Text('Last Revised'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Question',
+                            child: Text('Question'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Solution',
+                            child: Text('Solution'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Logic',
+                            child: Text('Logic'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            sortRecords(value);
+                          }
+                        },
+                      ),
+                      SizedBox(width: 15),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  ...uniqueCategories.map((category) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text(
+                            category.categoryName,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: height * 0.3,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            itemCount: category.records.length,
+                            itemBuilder: (context, index) {
+                              return RecordTile(category.records[index],
+                                  records: records);
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -244,6 +413,7 @@ class RecordCard extends StatelessWidget {
             Flexible(
               child: Text(
                 title,
+                maxLines: 1,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -269,8 +439,9 @@ class RecordCard extends StatelessWidget {
 
 class RecordTile extends StatelessWidget {
   final Record record;
+  final List<Record> records;
 
-  RecordTile(this.record);
+  RecordTile(this.record, {required this.records});
 
   @override
   Widget build(BuildContext context) {
@@ -279,21 +450,25 @@ class RecordTile extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecordDetailPage(record: record),
+            builder: (context) => RecordDetailPage(
+              record: record,
+              allRecords: records,
+            ),
           ),
         );
       },
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        width: MediaQuery.of(context).size.width * 0.8,
+        margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 6.0),
         padding: EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
+              color: Colors.grey.withOpacity(0.2),
               spreadRadius: 2,
-              blurRadius: 4,
+              blurRadius: 10,
               offset: Offset(0, 2), // changes position of shadow
             ),
           ],
@@ -301,40 +476,17 @@ class RecordTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              record.categories.first.categoryName,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.pinkAccent,
-                fontSize: 16.0,
-              ),
-            ),
             SizedBox(height: 8.0),
             _buildInfoRow('Question:', record.question),
             _buildInfoRow('Answer:', record.solution),
             _buildInfoRow('Logic:', record.logic),
-            SizedBox(height: 16.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Last Revised: ${record.metaData['lastVisited'][3].toString().padLeft(2, '0')}:${record.metaData['lastVisited'][4].toString().padLeft(2, '0')}, ${record.metaData['lastVisited'][2]}/${record.metaData['lastVisited'][1]}/${record.metaData['lastVisited'][0]}',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12.0,
-                  ),
-                ),
-                CircleAvatar(
-                  backgroundColor: Colors.pinkAccent,
-                  child: Text(
-                    record.categories.first.categoryName[0],
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+            SizedBox(height: 8.0),
+            Text(
+              'Last Revised: ${record.metaData['lastVisited'][3].toString().padLeft(2, '0')}:${record.metaData['lastVisited'][4].toString().padLeft(2, '0')}, ${record.metaData['lastVisited'][2]}/${record.metaData['lastVisited'][1]}/${record.metaData['lastVisited'][0]}',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12.0,
+              ),
             ),
           ],
         ),
@@ -348,15 +500,19 @@ class RecordTile extends StatelessWidget {
       children: [
         Text(
           label,
+          maxLines: 1,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14.0,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         Text(
           value,
+          maxLines: 1,
           style: TextStyle(
             fontSize: 14.0,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         SizedBox(height: 8.0),

@@ -97,43 +97,74 @@ class _LoginPageState extends State<LoginPage> {
       // appBar: AppBar(
       //   title: const Text('Google Sign In'),
       // ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+      body: SizedBox(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height,
+        child: Stack(
           children: [
-            SizedBox(
-              height: 150,
-            ),
             Image.asset(
-              'assets/logo.png',
-              height: 150,
-              width: 150,
+              'assets/login.png',
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Welcome to',
-              style: Theme.of(context).textTheme.headline4?.copyWith(
-                    fontWeight: FontWeight.bold,
+            Center(
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                height: MediaQuery.of(context).size.height * 0.6,
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 26),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  // color: Colors.white.withOpacity(1.0),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withOpacity(0.9),
+                      Colors.white.withOpacity(0.6),
+                    ],
                   ),
-              textAlign: TextAlign.center,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Image.asset(
+                        'assets/logo2.png',
+                        height: 150,
+                        width: 150,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Welcome!',
+                        style: Theme.of(context).textTheme.headline4?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      //const SizedBox(height: 20),
+                      // Text(
+                      //   'Revise App',
+                      //   style: Theme.of(context).textTheme.headline5?.copyWith(
+                      //       color: Colors.pink,
+                      //       fontWeight: FontWeight.bold,
+                      //       fontSize: 30),
+                      //   textAlign: TextAlign.center,
+                      // ),
+                      const SizedBox(height: 60),
+                      AuthenticationButton(
+                        authenticationMethod: AuthenticationMethod.google,
+                        onPressed: () {
+                          handleSignIn();
+                        },
+                      )
+                    ],
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Revise App',
-              style: Theme.of(context).textTheme.headline5?.copyWith(
-                  color: Colors.pink,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 90),
-            AuthenticationButton(
-              authenticationMethod: AuthenticationMethod.google,
-              onPressed: () {
-                handleSignIn();
-              },
-            )
           ],
         ),
       ),
