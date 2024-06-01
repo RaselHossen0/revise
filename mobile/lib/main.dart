@@ -1,22 +1,18 @@
-import 'dart:io';
-
 import 'package:authentication_buttons/authentication_buttons.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'firebase_options.dart';
 import 'home/HomePage.dart';
 
-void main() {
-  const List<String> scopes = <String>[
-    'email',
-  ];
-
-  GoogleSignIn _googleSignIn = GoogleSignIn(
-    // Optional clientId
-    clientId: 'your-client_id.apps.googleusercontent.com',
-    scopes: scopes,
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
+
   runApp(const MyApp());
 }
 
@@ -61,21 +57,29 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  GoogleSignIn _googleSignIn = GoogleSignIn(
-    // Optional clientId
-    clientId: Platform.isIOS
-        ? '127004398121-omjj5hiidh3r0q846t9ir0olqekqg8rp.apps.googleusercontent.com'
-        : '127004398121-87dkciepjorphg3gcnnpu0juv5tq75vt.apps.googleusercontent.com',
-    scopes: <String>[
-      'email',
-    ],
-  );
+  // GoogleSignIn _googleSignIn = GoogleSignIn(
+  //   serverClientId:
+  //       '127004398121-87dkciepjorphg3gcnnpu0juv5tq75vt.apps.googleusercontent.com',
+  //   // Optional clientId
+  //   clientId: Platform.isIOS
+  //       ? '127004398121-omjj5hiidh3r0q846t9ir0olqekqg8rp.apps.googleusercontent.com'
+  //       : null,
+  //   scopes: <String>[
+  //     'email',
+  //   ],
+  // );
+
   void handleSignIn() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       if (prefs.getString('email') == null) {
-        //var res = await _googleSignIn.signIn();
-        await prefs.setString('email', 'hrasel2002@gmail.com');
+        final _auth = auth.FirebaseAuth.instance;
+        auth.UserCredential userCredential = await _auth.signInWithProvider(
+          auth.GoogleAuthProvider(),
+        );
+        auth.User? user = userCredential.user;
+        prefs.setString('email', user!.email!);
+
         Navigator.pushAndRemoveUntil(context,
             MaterialPageRoute(builder: (context) {
           return HomePage();
@@ -87,7 +91,41 @@ class _LoginPageState extends State<LoginPage> {
         }), (route) => false);
       }
     } catch (error) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: const Text('An error occurred while signing in'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          });
       print(error);
+    }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    checkPreviousLogin();
+  }
+
+  checkPreviousLogin() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('email') != null) {
+      Navigator.pushAndRemoveUntil(context,
+          MaterialPageRoute(builder: (context) {
+        return HomePage();
+      }), (route) => false);
     }
   }
 
@@ -95,7 +133,13 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       // appBar: AppBar(
-      //   title: const Text('Google Sign In'),
+      //   toolbarHeight: 0,
+      //   forceMaterialTransparency: true,
+      //   systemOverlayStyle: SystemUiOverlayStyle(
+      //     statusBarColor: Colors.transparent,
+      //     statusBarIconBrightness: Brightness.dark,
+      //     systemNavigationBarColor: Colors.pink[50],
+      //   ),
       // ),
       body: SizedBox(
         width: double.infinity,

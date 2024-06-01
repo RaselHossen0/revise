@@ -5,8 +5,12 @@ import '../api/RecordModel.dart';
 class RecordDetailPage extends StatelessWidget {
   final Record record;
   final List<Record> allRecords;
+  bool fromHomePage = false;
 
-  RecordDetailPage({required this.record, required this.allRecords});
+  RecordDetailPage(
+      {required this.record,
+      required this.allRecords,
+      this.fromHomePage = false});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +26,7 @@ class RecordDetailPage extends StatelessWidget {
             child: Stack(
               children: [
                 Positioned(
-                    top: 50,
+                    top: fromHomePage ? 30 : 50,
                     right: 10,
                     child: IconButton(
                       color: Colors.red,
@@ -36,8 +40,8 @@ class RecordDetailPage extends StatelessWidget {
                       },
                     )),
                 Padding(
-                  padding:
-                      const EdgeInsets.only(top: 88.0, left: 16.0, right: 16.0),
+                  padding: EdgeInsets.only(
+                      top: !fromHomePage ? 88.0 : 60, left: 16.0, right: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
