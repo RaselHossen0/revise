@@ -109,7 +109,20 @@ const AddNewRecordPage = () => {
   const handleCheckBoxChange = (event) => {
     setCheckedForMail(event.target.checked);
   };
+  const handleAddCategory = async (newCategory) => {
 
+    const updatedCategories = [...allCategories, { categoryName: newCategory }];
+    setAllCategories(updatedCategories);
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleAddCategory(
+        event.target.value
+      );
+      event.target.value = '';  // Clear the input after adding the category
+    }
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -198,18 +211,24 @@ const AddNewRecordPage = () => {
           <h4 className='mb-2'>Record your findings / experiences for revision as it may help you solving doubts in the future.</h4>
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-6">
-              <label className="block text-gray-700 mb-2">Category</label>
-              <ReactSelect
-                isMulti
-                name="categories"
-                options={allCategories.map((cat) => ({ value: cat, label: cat.categoryName }))}
-                className="basic-multi-select"
-                classNamePrefix="select"
-                onChange={handleCategoryChange}
-              />
-              {errorMsg.categories && <p className="text-red-500 text-xs italic">{errorMsg.categories}</p>}
-            </div>
+          <div className="mb-6">
+  <label className="block text-gray-700 mb-2">Category</label>
+  <ReactSelect
+    isMulti
+    name="categories"
+    options={allCategories && allCategories.length > 0 ? allCategories.map((cat) => ({ value: cat, label: cat.categoryName })) : []}
+    className="basic-multi-select"
+    classNamePrefix="select"
+    onChange={handleCategoryChange}
+    onSubmit={handleAddCategory}
+    onBlur={handleAddCategory}
+    onKeyDown={handleKeyDown}
+
+    noOptionsMessage={() => "No categories found"}
+  />
+  
+  {errorMsg.categories && <p className="text-red-500 text-xs italic">{errorMsg.categories}</p>}
+</div>
 
             <div className="mb-6">
               <label className="block text-gray-700 mb-2">Question</label>
@@ -224,28 +243,27 @@ const AddNewRecordPage = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-gray-700 mb-2">Solution</label>
-              <textarea
-                name="solution"
-                placeholder="Enter a Solution..."
-                className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                value={record.solution}
-                onChange={handleChange}
-              ></textarea>
-              {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
-            </div>
+  <label className="block text-gray-700 mb-2">Solution</label>
+  <textarea
+    name="solution"
+    placeholder="Enter a Solution..."
+    className="w-full h-32 py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+    value={record.solution}
+    onChange={handleChange}
+  ></textarea>
+  {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
+</div>
 
-            <div className="mb-6">
-              <label className="block text-gray-700 mb-2">Logic</label>
-              <input
-                type="text"
-                name="logic"
-                placeholder="Input Logic"
-                className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                value={record.logic}
-                onChange={handleChange}
-              />
-            </div>
+<div className="mb-6">
+  <label className="block text-gray-700 mb-2">Logic</label>
+  <textarea
+    name="logic"
+    placeholder="Input Logic"
+    className="w-full h-32 py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+    value={record.logic}
+    onChange={handleChange}
+  ></textarea>
+</div>
 
             <div className="mb-6">
               <label className="block text-gray-700 mb-2">References:</label>

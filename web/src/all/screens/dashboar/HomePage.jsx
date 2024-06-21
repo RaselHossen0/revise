@@ -84,7 +84,7 @@ const HomePage = () => {
           .map(([categoryName, count]) => ({ categoryName, count }));
   
         setTopRecords(topCategories);
-        console.log(response);
+     
       } catch (error) {
         console.error('Error fetching records:', error);
       }
@@ -110,7 +110,7 @@ const HomePage = () => {
   
   const sortedRecords = records.sort((a, b) => {
     if (orderBy === 'lastRevised') {
-     console.log(a.metaData.lastVisited);
+
       // Sorting by date array (assuming 'lastRevised' is an array of dates)
       const [yearA, monthA, dayA, hourA, minuteA, secondA, nanosecondA] = a.metaData.lastVisited;
 const millisecondsA = Math.floor(nanosecondA / 1000000);
@@ -119,7 +119,7 @@ const dateA = new Date(yearA, monthA - 1, dayA, hourA, minuteA, secondA, millise
 const [yearB, monthB, dayB, hourB, minuteB, secondB, nanosecondB] = b.metaData.lastVisited;
 const millisecondsB = Math.floor(nanosecondB / 1000000);
 const dateB = new Date(yearB, monthB - 1, dayB, hourB, minuteB, secondB, millisecondsB);
-      console.log(dateA);
+    
       return order === 'asc' ? dateA - dateB : dateB - dateA;
     } else {
       // Default sorting for other properties (e.g., strings like 'category')
@@ -150,7 +150,7 @@ const dateB = new Date(yearB, monthB - 1, dayB, hourB, minuteB, secondB, millise
   const handleConfirm = async () => {
     try {
       const response = await deleteARecord(toDeleteID);
-      console.log('Record deleted:', response);
+  
       setRecords(records.filter((record) => record.id !== toDeleteID));
       setIsModalOpen(false);
     } catch (error) {
@@ -190,7 +190,7 @@ const dateB = new Date(yearB, monthB - 1, dayB, hourB, minuteB, secondB, millise
           </button>
         </div>
         
-        <hr className="mb-6" />
+        <hr className="border-gray-400 mb-6" />
 <div className='flex flex-row'>
   <div className="text-lg font-semibold mb-4 w-full text-grey">Top 5 Records:</div>
 </div>
@@ -305,9 +305,9 @@ const dateB = new Date(yearB, monthB - 1, dayB, hourB, minuteB, secondB, millise
           </StyledTableCell>
                     <StyledTableCell>
                       <div className="flex items-center space-x-2">
-                      <FaEdit className="text-blue-500" onClick={() => handleEditRecord(record.id,false)} />
-<FaTrash className="text-red-500" onClick={() => handleDelete(record.id)} />
-<FaArrowCircleRight className="text-green-500" onClick={() => handleEditRecord(record.id,true)} />
+                      <FaEdit className="text-blue-500 hover:text-blue-700 cursor-pointer" onClick={() => handleEditRecord(record.id,false)} />
+<FaTrash className="text-red-500 hover:text-red-700 cursor-pointer" onClick={() => handleDelete(record.id)} />
+<FaArrowCircleRight className="text-green-500 hover:text-green-700 cursor-pointer" onClick={() => handleEditRecord(record.id,true)} />
                         {/* <FaLink onClick={()=>handleFileView(record.id)} /> */}
                       </div>
                     </StyledTableCell>

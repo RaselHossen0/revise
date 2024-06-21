@@ -20,6 +20,7 @@ class RecordDetailPage extends StatelessWidget {
       body: PageView.builder(
         controller: PageController(initialPage: initialPageIndex),
         itemCount: allRecords.length,
+        scrollDirection: Axis.vertical,
         itemBuilder: (context, index) {
           Record currentRecord = allRecords[index];
           return SingleChildScrollView(

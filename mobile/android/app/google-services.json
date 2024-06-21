@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1038785403105",
+    "project_id": "revise123422",
+    "storage_bucket": "revise123422.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1038785403105:android:c9ca948da7ef7b6f387fa0",
+        "android_client_info": {
+          "package_name": "com.revise.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1038785403105-b47352fmih0rnf82vbvlsdnhgsjovau8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.revise.mobile",
+            "certificate_hash": "8159260cd1ea418a8f667eee5dd90201c76c7f01"
+          }
+        },
+        {
+          "client_id": "1038785403105-pp2k6mmcq8ja0ivbtrsrf5dptg4hlnmf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7iOm_jqAQLVl0j4wTz-TSBBXqLWl2ExU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1038785403105-pp2k6mmcq8ja0ivbtrsrf5dptg4hlnmf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1038785403105-s1fmulh16d15otvra9cronh4prmnan45.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.revise.mobile"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

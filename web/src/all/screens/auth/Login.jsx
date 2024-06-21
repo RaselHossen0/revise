@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 
-// Custom function to decode JWT
+
 const decodeJWT = (token) => {
   const base64Url = token.split('.')[1];
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -27,7 +27,7 @@ const LoginScreen = () => {
   }, [user]);
 
   const handleLogin = async (email) => {
-    console.log(email);
+ 
     try {
       const response = await fetch('http://ec2-54-251-143-90.ap-southeast-1.compute.amazonaws.com:8089/user/init', {
         method: 'POST',
@@ -48,11 +48,10 @@ const LoginScreen = () => {
         'mode': 'cors',
       });
       const data = await response.json();
-      // console.log(data.email);
-      // alert(data);
+
       localStorage.setItem('email', data.email);
       localStorage.setItem('user', JSON.stringify(data));
-      // alert('Login successful');
+     
       navigate('/dashboard');
     } catch (error) {
       console.error('Error logging in:', error);
@@ -76,11 +75,11 @@ const LoginScreen = () => {
           <GoogleLogin 
             size-100 
             onSuccess={credentialResponse => {
-              console.log(credentialResponse);
+             
               setUser(credentialResponse);
             }}
             onError={() => {
-              console.log('Login Failed');
+              alert('Error logging in');
             }}
           />
         </div>

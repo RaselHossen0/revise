@@ -16,9 +16,9 @@ const NavBar = () => {
   }
 
   const handleSearch = async () => {
-    console.log('Search Term:', searchTerm)
+    
     const results = await searchRecords(searchTerm)
-    console.log('Search Results:', results)
+    
     setSearchResults(results)
   }
 
@@ -71,7 +71,7 @@ const NavBar = () => {
                 placeholder="Search"
                 value={searchTerm}
                 onChange={handleChange}
-                className="py-2 px-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 w-96"
+                className="py-2 px-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 w-[300px] sm:w-[200px] lg:w-[400px] xl:w-[500px]"
               />
             </div>
             {searchResults.length > 0 && <SearchResults results={searchResults} />}

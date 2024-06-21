@@ -2,8 +2,8 @@
 class Assets {
   Assets._();
 
-  static const String assetsFrame 73 = 'assets/logo2.png';
   static const String assetsLogin = 'assets/login.png';
   static const String assetsLogo = 'assets/logo.png';
-
+  static const String assetsLogo2 = 'assets/logo2.png';
+  static const String assetsPlayStore512 = 'assets/play_store_512.png';
 }

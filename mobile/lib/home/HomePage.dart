@@ -42,6 +42,20 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void scrollToCategory(String categoryName) {
+    final categoryIndex = uniqueCategories
+        .indexWhere((category) => category.categoryName == categoryName);
+    if (categoryIndex != -1) {
+      _scrollController.animateTo(
+        categoryIndex *
+            MediaQuery.of(context).size.height *
+            0.3, // Adjust this value based on your item height
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Future<void> fetchCategoriesAndRecords() async {
     var recordsResponse = await ApiServices().getRevisionDetails();
     setState(() {
@@ -151,11 +165,13 @@ class _HomePageState extends State<HomePage> {
 
   bool showFloatingSearchResults = false;
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   @override
   void dispose() {
     // TODO: implement dispose
     super.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
   }
 
   int currentI = 0;
@@ -336,6 +352,7 @@ class _HomePageState extends State<HomePage> {
                   if (isLoaded)
                     Expanded(
                       child: ListView(
+                        controller: _scrollController,
                         children: [
                           SizedBox(height: 16),
                           Padding(
@@ -362,6 +379,13 @@ class _HomePageState extends State<HomePage> {
                                   title: uniqueCategories[index].categoryName,
                                   count: uniqueCategories[index].count,
                                   color: Colors.pink,
+                                  onTap: () {
+                                    // setState(() {
+                                    //   currentI = 1;
+                                    // });
+                                    scrollToCategory(
+                                        uniqueCategories[index].categoryName);
+                                  },
                                 );
                               },
                             ),
@@ -481,17 +505,19 @@ class RecordCard extends StatelessWidget {
   final String title;
   final int count;
   final Color color;
+  final VoidCallback onTap;
 
   RecordCard({
     required this.title,
     required this.count,
     this.color = Colors.grey,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(16),
         margin: EdgeInsets.symmetric(horizontal: 8),

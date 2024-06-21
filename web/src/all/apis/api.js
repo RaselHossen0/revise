@@ -11,7 +11,7 @@ const api = axios.create({
 const makeRequest = async (method, url, data = null, params = null, contentType) => {
   try {
 const headers = {};
-     console.log(data);
+
     if(contentType){
       headers['Content-Type'] = contentType;
     }else{
@@ -24,10 +24,10 @@ const headers = {};
       params: params,
       headers: headers,
     });
-    console.log(response);
+  
 
     if (response.status === 200) {
-      // console.log(response);
+   
       return response.data;
     } else {
       throw new Error('Request failed');
@@ -38,7 +38,7 @@ const headers = {};
 };
 
 const addRecordToDB = async (record) => {
-  console.log(record);
+
   const url = '/records/addtodb';
   return makeRequest('post', url, record);
 };

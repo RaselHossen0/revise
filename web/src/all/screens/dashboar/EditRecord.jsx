@@ -70,12 +70,11 @@ const EditRecordPage = () => {
             });
             setCheckedForMail(recordData.checkedForMail);
             for (const reff of recordData.references) {
-              console.log(reff);
+       
                 getFile(reff.referenceLocation).then((response) => {
                   const blob = new Blob([response],{ type: 'image/png' }); 
                   const objectURL = URL.createObjectURL(blob);
-                  console.log(objectURL);
-                    //console.log(response);
+                 
                     setSelectedFiles(prevFiles => [...prevFiles,objectURL]);
                 });
             }
@@ -245,30 +244,30 @@ const EditRecordPage = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-gray-700 mb-2">Solution</label>
-              <textarea
-                name="solution"
-                placeholder="Enter a Solution..."
-                className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                value={record.solution}
-                onChange={handleChange}
-                readOnly={readOnly}
-              ></textarea>
-              {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
-            </div>
+  <label className="block text-gray-700 mb-2">Solution</label>
+  <textarea
+    name="solution"
+    placeholder="Enter a Solution..."
+    className="w-full h-32 py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+    value={record.solution}
+    onChange={handleChange}
+    readOnly={readOnly}
+  ></textarea>
+  {errorMsg.solution && <p className="text-red-500 text-xs italic">{errorMsg.solution}</p>}
+</div>
 
-            <div className="mb-6">
-              <label className="block text-gray-700 mb-2">Logic</label>
-              <input
-                type="text"
-                name="logic"
-                placeholder="Input Logic"
-                className="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                value={record.logic}
-                onChange={handleChange}
-                readOnly={readOnly}
-              />
-            </div>
+<div className="mb-6">
+  <label className="block text-gray-700 mb-2">Logic</label>
+  <input
+    type="text"
+    name="logic"
+    placeholder="Input Logic"
+    className="w-full  h-32 py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+    value={record.logic}
+    onChange={handleChange}
+    readOnly={readOnly}
+  />
+</div>
 
             <div className="mb-6">
               <label className="block text-gray-700 mb-2">References:</label>
@@ -303,7 +302,7 @@ const EditRecordPage = () => {
               )}
             </div>
 
-            {!readOnly && (
+            {/* {!readOnly && (
               <div className="mb-6">
                 <label className="block text-gray-700 mb-2">Link New Reference</label>
                 <input
@@ -322,7 +321,7 @@ const EditRecordPage = () => {
                   </button>
                 )}
               </div>
-            )}
+            )} */}
 
             {readOnly && (
               <div className="mb-6">

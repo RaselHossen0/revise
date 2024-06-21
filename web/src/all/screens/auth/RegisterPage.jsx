@@ -24,7 +24,7 @@ const RegisterPage = () => {
                 
           });
           const data = await response.json();
-          console.log(data);
+       
           localStorage.setItem('name', data.name);
             localStorage.setItem('email', data.email);
             alert('Registration successful');
@@ -34,7 +34,7 @@ const RegisterPage = () => {
         }
       
         const data = Object.fromEntries(formData);
-        console.log(data);
+    
       };
   return (
     <div className="flex h-screen">
