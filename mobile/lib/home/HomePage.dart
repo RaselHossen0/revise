@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile/home/AddNewRecord.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/Apis.dart';
@@ -246,8 +247,8 @@ class _HomePageState extends State<HomePage> {
             label: 'Files',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.add_circle_outline),
+            label: 'Add New Record',
           ),
         ],
       ),
@@ -493,9 +494,7 @@ class _HomePageState extends State<HomePage> {
                     allRecords: records,
                     fromHomePage: true,
                   )
-                : Center(
-                    child: Text('Settings'),
-                  ),
+                : AddNewRecordPage(),
       ),
     );
   }

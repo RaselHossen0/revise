@@ -36,15 +36,18 @@ class ApiServices {
         throw Exception('Request failed');
       }
     } catch (error) {
+      print(error);
       throw Exception('Network error: $error');
     }
   }
 
   Future<dynamic> addRecordToDB(Map<String, dynamic> record) {
-    return makeRequest('POST', '/records/addtodb', data: record);
+    print(record);
+    return makeRequest('POST', '/records/addtodb', data: (record));
   }
 
   Future<dynamic> uploadFile(String filePath, String recordId) async {
+    print(filePath);
     FormData formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath),
     });
