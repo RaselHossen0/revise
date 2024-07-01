@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
@@ -25,16 +24,19 @@ final selectedCategoriesProvider =
 final apiServicesProvider = Provider((ref) => ApiServices());
 
 // Provider for fetching categories
-final categoriesProvider = FutureProvider<List<String>>((ref) async {
+final categoriesProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final apiServices = ref.watch(apiServicesProvider);
   final categoriesResponse = await apiServices.getAllCategories();
 
   // Ensure the response is a list of maps and extract categoryName
-  final categoriesSet = <String>{};
+  final categories = <Map<String, dynamic>>[];
   for (var category in categoriesResponse) {
-    categoriesSet.add(category['categoryName']);
+    categories.add({
+      'id': category['id'],
+      'categoryName': category['categoryName'],
+    });
   }
-  final categories = categoriesSet.toList();
 
   return categories;
 });
@@ -65,11 +67,10 @@ class AddNewRecordPage extends ConsumerWidget {
               Text('Category'),
               MultiSelectDialogField<Map<String, dynamic>>(
                 items: categories.map((category) {
-                  print(categories);
-                  int categoryId = categories.indexOf(category) + 1;
+                  // print(categories);
                   return MultiSelectItem<Map<String, dynamic>>(
-                    {'id': categoryId, 'categoryName': category},
-                    category,
+                    category, // This is the map containing 'id' and 'categoryName'
+                    category['categoryName'], // This is the display text
                   );
                 }).toList(),
                 onSelectionChanged: (List<Map<String, dynamic>> selectedList) {
@@ -89,7 +90,7 @@ class AddNewRecordPage extends ConsumerWidget {
               ),
               Wrap(
                 children: selectedCategories.map((category) {
-                  print(category);
+                  // print(category);
                   return Chip(
                     label: Text(category['categoryName']),
                     onDeleted: () {
@@ -137,35 +138,6 @@ class AddNewRecordPage extends ConsumerWidget {
                   ref.read(logicProvider.notifier).state = value;
                 },
               ),
-              SizedBox(height: 16.0),
-              Text('Upload Files'),
-              GestureDetector(
-                onTap: () async {
-                  final pickedFile = await FilePicker.platform.pickFiles();
-                  if (pickedFile != null) {
-                    //upload to firebase storage
-                    // final uploadStatus = await apiServices.uploadFile(
-                    //     pickedFile.files.single.path!, 'recordId_placeholder');
-                    ref.read(uploadStatusProvider.notifier).state =
-                        pickedFile.files.single.path!;
-                  }
-                },
-                child: Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Center(
-                    child: Text('Drag files here or click to upload'),
-                  ),
-                ),
-              ),
-              if (selectedFile != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text('File Selected: ${selectedFile.split('/').last}'),
-                ),
               SizedBox(height: 16.0),
               Row(
                 children: [
@@ -248,11 +220,18 @@ class AddNewRecordPage extends ConsumerWidget {
           ({...prevErrorMsg, 'solution': 'Please add at least 1 solution'}));
       return;
     }
-
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Uploading File'),
+            content: Text('Please wait while we upload the file'),
+          );
+        });
     // Format the categories correctly
     final formattedCategories = selectedCategories
         .map((category) => {
-              'id': 0, // Assuming ID is generated server-side
+              'id': category['id'], // Assuming ID is generated server-side
               'categoryName': category['categoryName'],
             })
         .toList();
@@ -268,10 +247,10 @@ class AddNewRecordPage extends ConsumerWidget {
 
     final uploadStatus = ref.read(uploadStatusProvider);
 
-    print(email);
+    // print(email);
 
     final recordData = {
-      'id': 0,
+      'id': null,
       'categories': formattedCategories,
       'question': question,
       'solution': solution,
@@ -283,15 +262,7 @@ class AddNewRecordPage extends ConsumerWidget {
         'lastVisited': DateTime.now().toIso8601String(),
         'fibonaccidays': 0,
       },
-      "references": [
-        {
-          "id": 0,
-          "typeOfReference": "IMAGE",
-          "referenceNameOrURI": "",
-          "referenceLocation": "",
-          "referenceSize": 0
-        }
-      ],
+
       'daysPassedSinceLastVisit': 0,
       'createdByUser': user,
       'checkedForMail': checkedForMail,
@@ -299,11 +270,49 @@ class AddNewRecordPage extends ConsumerWidget {
 
     try {
       final id = await apiServices.addRecordToDB(recordData);
+      print(id);
       setRecordId(id);
       setIsSubmitted;
+      Navigator.pop(context);
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('Success'),
+              content: Text('Record added successfully'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          });
+
       // Optionally navigate back or show success message
     } catch (error) {
       print(error);
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Error'),
+            content: Text('An error occurred while adding the record'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+
       // Optionally show error message
     }
   }
